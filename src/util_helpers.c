@@ -72,7 +72,7 @@ uint32_t rust_crypto_util_fixed_time_eq_asm(uint8_t* lhsp, uint8_t* rhsp, size_t
 }
 #endif
 
-#ifdef __arm__
+#if __arm__
 uint32_t rust_crypto_util_fixed_time_eq_asm(uint8_t* lhsp, uint8_t* rhsp, size_t count) {
     if (count == 0) {
         return 1;
@@ -95,6 +95,35 @@ uint32_t rust_crypto_util_fixed_time_eq_asm(uint8_t* lhsp, uint8_t* rhsp, size_t
         : "+&r" (result), "+&r" (lhsp), "+&r" (rhsp), "+&r" (count) // all input and output
         : // input
         : "r4", "r5", "cc" // clobbers
+    );
+
+    return result;
+}
+#endif
+
+#if __arm64__
+uint32_t rust_crypto_util_fixed_time_eq_asm(uint8_t* lhsp, uint8_t* rhsp, size_t count) {
+    if (count == 0) {
+        return 1;
+    }
+    uint8_t result = 0;
+    asm(
+        " \
+            1: \n\
+            \n\
+            ldrb w9, [%1]; \n\
+            ldrb w10, [%2]; \n\
+            eor w9, w9, w10; \n\
+            orr %w0, %w0, w9; \n\
+            \n\
+            add %1, %1, #1; \n\
+            add %2, %2, #1; \n\
+            subs %3, %3, #1; \n\
+            bne 1b; \n\
+        "
+        : "+&r" (result), "+&r" (lhsp), "+&r" (rhsp), "+&r" (count) // all input and output
+        : // input
+        : "w9", "w10", "cc" // clobbers
     );
 
     return result;
